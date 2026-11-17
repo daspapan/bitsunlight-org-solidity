@@ -99,14 +99,79 @@ I used two Hardhat accounts: account #0 (the owner, which is also the backend wa
 
 <img src="docs/s12-02.png" alt="" width="600">
 
-| --- | --- | --- |
-| Call	| Result	| What it proves |
-| GET /health	| {"status":"OK"}	| The README’s health check passes. |
-GET /balance/<owner>	{"balance":1000}	Initial supply went to the deployer, and the API converts base units to whole tokens.
-GET /balance/<alice>	{"balance":0}	An empty address reads as 0.
-POST /mint {"to":alice,"amount":50}	tx hash	The owner can mint through the API.
-GET /balance/<alice>	{"balance":50}	The mint actually landed.
-POST /burn {"amount":99999}	error, reverted	Burning more than the balance is blocked.
-POST /mint {"to":"nope"}	400	Input validation works.
-GET /does-not-exist	404	The fixed 404 handler works.
 
+| Call	| Result	| What it proves |
+| --- | --- | --- |
+| GET /health	| {"status":"OK"}	| The README’s health check passes. |
+| GET /balance/<owner>	| {"balance":1000}	| Initial supply went to the deployer, and the API converts base units to whole tokens. |
+|GET /balance/<alice>	|{"balance":0}	|An empty address reads as 0.
+|POST /mint {"to":alice,"amount":50}	|tx hash	|The owner can mint through the API.
+|GET /balance/<alice>	|{"balance":50}	|The mint actually landed.|
+|POST /burn {"amount":99999}	|error, reverted	|Burning more than the balance is blocked.|
+|POST /mint {"to":"nope"}	|400 | Input validation works.|
+|GET /does-not-exist	|404 |The fixed 404 handler works.|
+
+
+Owner: 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
+Alice: 0x70997970C51812dc3A010C7d01b50e0d17dc79C8
+ 
+curl http://localhost:4972/health | jq
+
+curl http://localhost:4972/balance/0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 | jq
+
+
+curl http://localhost:4972/balance/0x70997970C51812dc3A010C7d01b50e0d17dc79C8 | jq
+
+
+curl -X POST http://localhost:4972/mint \
+  -H "Content-Type: application/json" \
+  -d '{"to": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8", "amount": 50}' | jq
+
+
+curl -X POST http://localhost:4972/burn \
+  -H "Content-Type: application/json" \
+  -d '{"amount": 99999}' | jq
+
+
+<img src="docs/s12-03.png" alt="" width="600">
+
+One call failed unexpectedly: a POST /burn sent right after the mint returned “nonce has already been used”.
+
+### Step 13. Investigated the nonce error. 
+I first checked whether it was a one-off:
+
+1. Retried the burn alone. It worked, and the owner balance went 1000 → 980, so the burn logic itself is correct.
+2. Alternated mint and burn quickly, three times. Most calls failed.
+3. Repeated the same sequence with a 1-second pause between calls. Every call worked.
+
+<img src="docs/s13-01.png" alt="" width="600">
+
+That pattern pointed to timing, not the contract. ethers v6’s JsonRpcProvider caches identical RPC requests for 250 ms. When a second transaction goes out within that window, ethers gets back the cached transaction count and reuses the previous nonce, which the chain rejects. A real user or grader clicking quickly would hit this, so I fixed it.
+
+### Step 14. Fixed the nonce bug. 
+
+<img src="docs/s13-02.png" alt="" width="600">
+
+In ```src/blockchain/tokenClient.js```:
+
+<img src="docs/s14-01.png" alt="" width="600">
+
+### Step 15. Re-tested under load. 
+
+After restarting the API, I fired 20 back-to-back mint and burn calls with no pauses: 20 succeeded, 0 failed. The balances matched exactly:
+
+
+```/health``` still returned OK. Evaluation point 4 is now fully met.
+
+
+## Phase 4: Write-up and delivery
+
+### Step 16. Wrote README.md. 
+
+The brief says to leave the backend alone, so any change to it needs a justification.
+
+I committed it last.
+
+Final check and packaging.
+
+Ran ```npm test``` once more: still 7 passing.

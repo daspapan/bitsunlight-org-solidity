@@ -31,7 +31,10 @@ function buildClient() {
     throw new ConfigError("CONTRACT_ADDRESS is not a valid Ethereum address.");
   }
 
-  const provider = new JsonRpcProvider(rpcUrl);
+  // const provider = new JsonRpcProvider(rpcUrl);
+  // Disable ethers' 250ms request cache so back-to-back writes from the same
+  // wallet don't reuse a stale nonce ("nonce has already been used").
+  const provider = new JsonRpcProvider(rpcUrl, undefined, { cacheTimeout: -1 });
   const wallet = new Wallet(privateKey, provider);
   const contract = new Contract(contractAddress, tokenABI, wallet);
 
