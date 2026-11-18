@@ -87,11 +87,15 @@ The deploy uses Hardhat account #0, so account #0 becomes the token owner.
 
 The API crashed immediately with ```SyntaxError: Unexpected token '<'``` from   ```notFound.js```. The README says the backend needs no changes, but as shipped it can never start, so evaluation point 4 (/health OK, endpoints working) couldn’t be met without a fix.
 
+---
+
 ### Step 12. Fixed the 404.svg crash. 
 
 In ```src/middleware/notFound.js```, this line:
 
 <img src="docs/s12-01.png" alt="" width="600">
+
+---
 
 ### Step 13. Started the API and tested every endpoint. 
 
@@ -143,7 +147,9 @@ curl http://localhost:4972/does-not-exist | jq
 
 One call failed unexpectedly: a POST /burn sent right after the mint returned “nonce has already been used”.
 
-### Step 13. Investigated the nonce error. 
+---
+
+### Step 14. Investigated the nonce error. 
 I first checked whether it was a one-off:
 
 1. Retried the burn alone. It worked, and the owner balance went 1000 → 980, so the burn logic itself is correct.
@@ -154,7 +160,9 @@ I first checked whether it was a one-off:
 
 That pattern pointed to timing, not the contract. ethers v6’s JsonRpcProvider caches identical RPC requests for 250 ms. When a second transaction goes out within that window, ethers gets back the cached transaction count and reuses the previous nonce, which the chain rejects. A real user or grader clicking quickly would hit this, so I fixed it.
 
-### Step 14. Fixed the nonce bug. 
+---
+
+### Step 15. Fixed the nonce bug. 
 
 <img src="docs/s13-02.png" alt="" width="600">
 
@@ -166,7 +174,7 @@ The bug still existed during the execution
 
 ---
 
-### Step 15: Add the error definitions to the ABI
+### Step 16: Add the error definitions to the ABI
 
 Open ```src/constants/tokenABI.js```. After the balanceOf line, add the three error lines so the file looks like this:
 
@@ -185,12 +193,12 @@ Open ```src/constants/tokenABI.js```. After the balanceOf line, add the three er
 
 ---
 
-### Step 16: Decode the error in the error handler
+### Step 17: Decode the error in the error handler
 
 Open ```src/middleware/errorHandler.js``` and replace the whole file:
 
 
-[View script.js](./src/middleware/errorHandler.js)
+[View errorHandler.js](./src/middleware/errorHandler.js)
 
 
 | # | Source | What it confirms |
@@ -226,29 +234,23 @@ Open ```src/middleware/errorHandler.js``` and replace the whole file:
 
 
 
-### Step 17. Re-tested under load. 
+### Step 18. Re-tested under load. 
 
 After restarting the API, I fired 20 back-to-back mint and burn calls with no pauses: 20 succeeded, 0 failed. The balances matched exactly:
 
 
 ```/health``` still returned OK. Evaluation point 4 is now fully met.
 
+---
 
 ## Phase 4: Write-up and delivery
 
-### Step 18. Wrote README.md. 
+### Step 19. Wrote README.md. 
 
-The brief says to leave the backend alone, so any change to it needs a justification.
-
-I committed it last.
-
-Final check and packaging.
-
-Ran ```npm test``` once more: still 7 passing.
+Documented every step in this README. Final check and packaging. Ran ```npm test``` once more: still 7 passing.
 
 
-
-
+---
 
 
 ## Source list
