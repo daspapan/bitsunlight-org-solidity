@@ -190,6 +190,8 @@ Open ```src/constants/tokenABI.js```. After the balanceOf line, add the three er
 Open ```src/middleware/errorHandler.js``` and replace the whole file:
 
 
+[View script.js](./src/middleware/errorHandler.js)
+
 
 | # | Source | What it confirms |
 | --- | --- | --- |
@@ -207,12 +209,16 @@ Open ```src/middleware/errorHandler.js``` and replace the whole file:
 ## Evidence inside the project
  
 - **Test file:** `contract/test/TestToken.ts` expects the contract to revert with `ERC20InsufficientBalance` and `OwnableUnauthorizedAccount`.
+  
 - **OpenZeppelin source:** `contract/node_modules/@openzeppelin/contracts/interfaces/draft-IERC6093.sol` contains the exact error signatures used in Step 1.
+  
 - **Before and after:**
+  
 | Call | Before the fix | After the fix |
 | --- | --- | --- |
 | `POST /burn {"amount":99999}` | 502, `execution reverted (unknown custom error)` | 400, `Insufficient balance: 0xf39F… has 980.0 STT but 99999.0 STT was requested.` |
 | Mint from a non-owner wallet | 502, `execution reverted (unknown custom error)` | 400, `Only the token owner can mint. 0x7099… is not the owner.` |
+
  
 ---
  
